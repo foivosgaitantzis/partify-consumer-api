@@ -1,0 +1,519 @@
+openapi: 3.0.1
+info: 
+  title: Partify Consumer API
+  version: 1.0.0
+  description: Partify (Consumer) API Specification - Includes Discover, Favorites, Retrieving Venue & Event Details and Booking an Event
+servers: []
+tags: 
+  - name: Venues
+  - name: Events
+  - name: Users
+  - name: Orders
+paths:
+  /events:
+    get:
+      tags:
+        - Events
+      operationId: ListEvents
+      summary: Lists Events
+      description: Retrieves a List of Events by City
+      parameters: 
+        - $ref: '#/components/parameters/CityIdQueryParameter'
+        - $ref: '#/components/parameters/DateFilterQueryParameter'
+        - $ref: '#/components/parameters/PageNumberQueryParameter'
+        - $ref: '#/components/parameters/PageSizeQueryParameter'
+      responses:
+        200: 
+          $ref: "#/components/responses/ListEventsResponse"
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
+  /events/featured:
+    get:
+      tags:
+        - Events
+      operationId: ListFeaturedEvents
+      summary: Lists Featured Events
+      description: Retrieves a List of Featured Events by City
+      parameters: 
+        - $ref: '#/components/parameters/CityIdQueryParameter'
+        - $ref: '#/components/parameters/DateFilterQueryParameter'
+        - $ref: '#/components/parameters/PageNumberQueryParameter'
+        - $ref: '#/components/parameters/PageSizeQueryParameter'
+      responses:
+        200: 
+          $ref: "#/components/responses/ListFeaturedEventsResponse"
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
+  /venues:
+    get:
+      tags:
+        - Venues
+      operationId: ListVenues
+      summary: Lists Venues
+      description: Retrieves a List of Venues by City
+      parameters: 
+        - $ref: '#/components/parameters/CityIdQueryParameter'
+        - $ref: '#/components/parameters/DateFilterQueryParameter'
+        - $ref: '#/components/parameters/PageNumberQueryParameter'
+        - $ref: '#/components/parameters/PageSizeQueryParameter'
+      responses:
+        200: 
+          $ref: "#/components/responses/ListVenuesResponse"
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
+  /venues/{venueId}/events: 
+    get:
+      tags:
+        - Venues
+      operationId: ListVenueEvents
+      summary: Lists Events of a Venue
+      description: Gets Events List for a Specific Venue
+      parameters: 
+        - $ref: '#/components/parameters/VenueIdPathParameter'
+        - $ref: '#/components/parameters/CityIdQueryParameter'
+        - $ref: '#/components/parameters/DateFilterQueryParameter'
+        - $ref: '#/components/parameters/PageNumberQueryParameter'
+        - $ref: '#/components/parameters/PageSizeQueryParameter'
+      responses:
+        200: 
+          $ref: "#/components/responses/ListFeaturedEventsResponse"
+        404:
+          $ref: '#/components/responses/NotFoundErrorResponse'
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
+  /venues/recents:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - Venues
+      operationId: ListRecentVenues
+      summary: Lists Recently Visited Venues
+      description: Gets Venues List for Recently Visited Events
+      parameters: 
+        - $ref: '#/components/parameters/CityIdQueryParameter'
+        - $ref: '#/components/parameters/DateFilterQueryParameter'
+        - $ref: '#/components/parameters/PageNumberQueryParameter'
+        - $ref: '#/components/parameters/PageSizeQueryParameter'
+      responses:
+        200: 
+          $ref: "#/components/responses/ListRecentVenuesResponse"
+        401: 
+          $ref: "#/components/responses/UnauthorizedErrorResponse"
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
+components: 
+  parameters:
+    CityIdQueryParameter:    
+      name: cityId
+      in: query
+      description: ID of a City
+      required: true
+      schema:
+        type: string
+        format: uuid
+    DateFilterQueryParameter:
+      name: dateFilter
+      in: query
+      description: Date Filter Query Parameter
+      schema:
+        type: string
+        format: date
+    PageNumberQueryParameter:
+      name: page[number]
+      in: query
+      description: Page number (zero-based) for pagination
+      schema:
+        type: integer
+        format: int32
+        minimum: 0
+    PageSizeQueryParameter:
+      name: page[size]
+      in: query
+      description: Page size for pagination
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 100
+    VenueIdPathParameter:
+      name: venueId
+      in: path
+      description: ID of a Venue
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses: 
+    InternalServerErrorResponse:
+      description: Internal Server Error
+      content:
+        application/vnd.api+json:
+          schema: 
+            $ref: '#/components/schemas/Errors'
+          examples:
+            InternalServerError: 
+              $ref: '#/components/examples/InternalServerErrorResponseExample'
+    ListEventsResponse: 
+      description: List Events Success Response
+      content:
+        application/vnd.api+json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/PaginationMetadata'
+              - $ref: '#/components/schemas/EventsSummary'
+          examples:
+            EventSummary:
+              $ref: '#/components/examples/EventSummaryResponseExample'
+    ListFeaturedEventsResponse: 
+      description: List Featured Events Success Response
+      content:
+        application/vnd.api+json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/PaginationMetadata'
+              - $ref: '#/components/schemas/EventsSummary'
+          examples:
+            EventSummary:
+              $ref: '#/components/examples/EventSummaryResponseExample'
+    ListRecentVenuesResponse:
+      description: List Recent Venues Success Response
+      content:
+        application/vnd.api+json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/PaginationMetadata'
+              - $ref: '#/components/schemas/VenuesSummary'
+          examples:
+            VenuesSummary:
+              $ref: '#/components/examples/VenuesSummaryResponseExample'
+    ListVenuesResponse:
+      description: List Venues Success Response
+      content:
+        application/vnd.api+json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/PaginationMetadata'
+              - $ref: '#/components/schemas/VenuesSummary'
+          examples:
+            VenuesSummary:
+              $ref: '#/components/examples/VenuesSummaryResponseExample'
+    NotFoundErrorResponse:
+      description: Not Found Error
+      content:
+        application/vnd.api+json:
+          schema: 
+            $ref: '#/components/schemas/Errors'
+          examples:
+            NotFoundError: 
+              $ref: '#/components/examples/NotFoundErrorResponseExample'
+    UnauthorizedErrorResponse:
+      description: Unauthorized Error
+      content:
+        application/vnd.api+json:
+          schema: 
+            $ref: '#/components/schemas/Errors'
+          examples:
+            UnauthorizedError: 
+              $ref: '#/components/examples/UnauthorizedErrorResponseExample'
+  schemas:
+    Address:
+      title: Address
+      type: object
+      required:
+        - line1
+        - postcode
+        - city
+        - country
+      properties:
+        line1: 
+          type: string
+          minLength: 1
+          maxLength: 50
+        line2: 
+          type: string
+          minLength: 1
+          maxLength: 50
+        line3: 
+          type: string
+          minLength: 1
+          maxLength: 50
+        postcode: 
+          type: string
+          minLength: 1
+        city:
+          type: string
+          minLength: 1
+        country:
+          type: string
+          minLength: 1
+    Error:
+      title: Error
+      type: object
+      required:
+        - code
+        - title
+      properties:
+        code:
+          type: string
+        title:
+          type: string
+        detail:
+          type: string
+        source:
+          oneOf:
+            - type: object
+              required:
+                - pointer
+              properties:
+                pointer:
+                  type: string
+            - type: object
+              required:
+                - parameter
+              properties:
+                parameter:
+                  type: string          
+    Errors:
+      title: Errors
+      type: object
+      required:
+        - errors
+        - meta
+      properties:
+        errors:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Error'
+        meta:
+          type: object
+          required:
+            - status
+            - timestamp
+            - correlationId
+          properties:
+            status:
+              type: string
+            timestamp:
+              type: string
+              format: date-time
+            correlationId:
+              type: string
+    EventSummary:
+      title: EventSummary
+      type: object
+      required:
+        - id
+        - type
+        - attributes
+      properties:
+        id: 
+          type: string
+          format: uuid
+        type:
+          $ref: "#/components/schemas/EventsTypeEnum"
+        attributes:
+          type: object
+          required: 
+            - name
+            - venue
+            - start
+            - end
+          properties:
+            name:
+              type: string
+            venue:
+              type: string
+            start:
+              type: string
+              format: date-time
+            end:
+              type: string
+              format: date-time 
+    EventsSummary: 
+      title: EventsSummary
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          uniqueItems: true
+          minItems: 0
+          items: 
+            $ref: '#/components/schemas/EventSummary'
+    EventsTypeEnum:
+      title: EventsTypeEnum
+      type: string
+      enum: [ events ]
+    PaginationMetadata:
+      title: PaginationMetadata
+      type: object
+      required:
+        - meta
+      properties:
+        meta:
+          type: object
+          required:
+            - page
+          properties:
+            page:
+              type: object
+              required:
+                - number
+                - size
+              properties:
+                number:
+                  type: integer
+                  format: int32
+                size:
+                  type: integer
+                  format: int32
+                totalPages:
+                  type: integer
+                  format: int32
+                totalElements:
+                  type: integer
+                  format: int32
+    VenueSummary:
+      title: VenueSummary
+      type: object
+      required:
+        - id
+        - type
+        - attributes
+      properties:
+        id: 
+          type: string
+          format: uuid
+        type:
+          $ref: "#/components/schemas/VenuesTypeEnum"
+        attributes:
+          type: object
+          required: 
+            - name
+            - address
+          properties:
+            name:
+              type: string
+            address:
+              $ref: "#/components/schemas/Address"
+    VenuesSummary:
+      title: VenuesSummary
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          uniqueItems: true
+          minItems: 0
+          items: 
+            $ref: '#/components/schemas/VenueSummary'
+    VenuesTypeEnum:
+      title: VenuesTypeEnum
+      type: string
+      enum: [ venues ]
+  examples:
+    EventSummaryResponseExample: 
+      value: {
+        "meta": {
+          "page": {
+            "number": 0,
+            "size": 1,
+            "totalPages": 1,
+            "totalElements": 1
+          }
+        },
+        "data": [
+          {
+            "id": "aa47a092-c0d0-4aec-9cab-2943a34d940f",
+            "type": "events",
+            "attributes": {
+              "name": "Funktastika",
+              "venue": "NUBA Cafe Bucharest",
+              "start": "2023-07-27T22:30:00",
+              "end": "2023-07-28T05:30:00"
+            }
+          }
+        ]
+      }
+    InternalServerErrorResponseExample:
+      value: {
+        "errors": [
+          {
+            "code": "INTERNAL_SERVER_ERROR",
+            "title": "Internal Server Error"
+          }
+        ],
+        "meta": {
+          "status": "500",
+          "timestamp": "2023-01-01T12:00:00.000000Z",
+          "correlationId": "fc52fdb98b0072bda24c5b71a5c122fe"
+        }
+      }
+    NotFoundErrorResponseExample: 
+      value: {
+        "errors": [
+          {
+            "code": "NOT_FOUND_ERROR",
+            "title": "Not Found Error",
+            "source": {
+              "pointer": "/venueId"
+            }
+          }
+        ],
+        "meta": {
+          "status": "404",
+          "timestamp": "2023-01-01T12:00:00.000000Z",
+          "correlationId": "fc52fdb98b0072bda24c5b71a5c122fe"
+        }
+      }
+    UnauthorizedErrorResponseExample: 
+      value: {
+        "errors": [
+          {
+            "code": "UNAUTHORIZED_ERROR",
+            "title": "Unauthorized Error"
+          }
+        ],
+        "meta": {
+          "status": "401",
+          "timestamp": "2023-01-01T12:00:00.000000Z",
+          "correlationId": "fc52fdb98b0072bda24c5b71a5c122fe"
+        }
+      }
+    VenuesSummaryResponseExample:
+      value: {
+        "meta": {
+          "page": {
+            "number": 0,
+            "size": 1,
+            "totalPages": 1,
+            "totalElements": 1
+          }
+        },
+        "data": [
+          {
+            "id": "f8ae36fd-ada6-42ee-bf7c-f7e7bf3b6c2f",
+            "type": "venues",
+            "attributes": {
+              "name": "NUBA Cafe Bucharest Herastrau",
+              "address": {
+                "line1": "Soseaua Nordului 1",
+                "line2": "Parc Herastrau",
+                "postcode": "014101",
+                "city": "Bucharest",
+                "country": "Romania"
+              }
+            }
+          }
+        ]
+      }
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    
