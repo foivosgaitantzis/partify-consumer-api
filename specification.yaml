@@ -9,6 +9,7 @@ tags:
   - name: Events
   - name: Users
   - name: Orders
+  - name: Favorites
 paths:
   /events:
     get:
@@ -44,6 +45,38 @@ paths:
           $ref: "#/components/responses/ListFeaturedEventsResponse"
         500: 
           $ref: '#/components/responses/InternalServerErrorResponse'
+  /events/{eventId}:
+    get:
+      tags:
+        - Events
+      operationId: GetEvent
+      summary: Gets an Event
+      description: Gets Detailed Information of a Specific Event
+      parameters:
+        - $ref: '#/components/parameters/EventIdPathParameter'
+      responses:
+        200:
+          $ref: '#/components/responses/GetEventResponse'
+        404:
+          $ref: '#/components/responses/NotFoundErrorResponse'
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
+  /events/{eventId}/tickets:
+    get:
+      tags:
+        - Events
+      operationId: ListTickets
+      summary: Lists Event Tickets
+      description: Retrieves a List of Tickets for an Event
+      parameters:
+        - $ref: '#/components/parameters/EventIdPathParameter'
+      responses:
+        200:
+          $ref: '#/components/responses/ListTicketsResponse'
+        404:
+          $ref: '#/components/responses/NotFoundErrorResponse'
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
   /venues:
     get:
       tags:
@@ -59,26 +92,6 @@ paths:
       responses:
         200: 
           $ref: "#/components/responses/ListVenuesResponse"
-        500: 
-          $ref: '#/components/responses/InternalServerErrorResponse'
-  /venues/{venueId}/events: 
-    get:
-      tags:
-        - Venues
-      operationId: ListVenueEvents
-      summary: Lists Events of a Venue
-      description: Gets Events List for a Specific Venue
-      parameters: 
-        - $ref: '#/components/parameters/VenueIdPathParameter'
-        - $ref: '#/components/parameters/CityIdQueryParameter'
-        - $ref: '#/components/parameters/DateFilterQueryParameter'
-        - $ref: '#/components/parameters/PageNumberQueryParameter'
-        - $ref: '#/components/parameters/PageSizeQueryParameter'
-      responses:
-        200: 
-          $ref: "#/components/responses/ListFeaturedEventsResponse"
-        404:
-          $ref: '#/components/responses/NotFoundErrorResponse'
         500: 
           $ref: '#/components/responses/InternalServerErrorResponse'
   /venues/recents:
@@ -102,6 +115,42 @@ paths:
           $ref: "#/components/responses/UnauthorizedErrorResponse"
         500: 
           $ref: '#/components/responses/InternalServerErrorResponse'
+  /venues/{venueId}:
+    get:
+      tags:
+        - Venues
+      operationId: GetVenue
+      summary: Gets a Venue
+      description: Gets Detailed Information of a Specific Venue
+      parameters:
+        - $ref: '#/components/parameters/VenueIdPathParameter'
+      responses: 
+        200: 
+          $ref: "#/components/responses/GetVenueResponse"
+        404:
+          $ref: '#/components/responses/NotFoundErrorResponse'
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
+  /venues/{venueId}/events: 
+    get:
+      tags:
+        - Venues
+        - Events
+      operationId: ListVenueEvents
+      summary: Lists Events of a Venue
+      description: Gets Events List for a Specific Venue
+      parameters: 
+        - $ref: '#/components/parameters/VenueIdPathParameter'
+        - $ref: '#/components/parameters/DateFilterQueryParameter'
+        - $ref: '#/components/parameters/PageNumberQueryParameter'
+        - $ref: '#/components/parameters/PageSizeQueryParameter'
+      responses:
+        200: 
+          $ref: "#/components/responses/ListFeaturedEventsResponse"
+        404:
+          $ref: '#/components/responses/NotFoundErrorResponse'
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
 components: 
   parameters:
     CityIdQueryParameter:    
@@ -119,10 +168,18 @@ components:
       schema:
         type: string
         format: date
+    EventIdPathParameter:
+      name: eventId
+      in: path
+      description: ID of an Event
+      required: true
+      schema:
+        type: string
+        format: uuid
     PageNumberQueryParameter:
       name: page[number]
       in: query
-      description: Page number (zero-based) for pagination
+      description: Page Number (zero-based) for Pagination
       schema:
         type: integer
         format: int32
@@ -130,7 +187,7 @@ components:
     PageSizeQueryParameter:
       name: page[size]
       in: query
-      description: Page size for pagination
+      description: Page Size for Pagination
       schema:
         type: integer
         format: int32
@@ -145,6 +202,24 @@ components:
         type: string
         format: uuid
   responses: 
+    GetEventResponse:
+      description: Get Event Success Response
+      content:  
+        application/vnd.api+json:
+          schema:
+            $ref: '#/components/schemas/EventDetail'
+          examples:
+            EventDetail:
+              $ref: '#/components/examples/EventDetailResponseExample'
+    GetVenueResponse:
+      description: Get Venue Success Response
+      content:  
+        application/vnd.api+json:
+          schema:
+            $ref: '#/components/schemas/VenueDetail'
+          examples:
+            VenueDetail:
+              $ref: '#/components/examples/VenueDetailResponseExample'
     InternalServerErrorResponse:
       description: Internal Server Error
       content:
@@ -187,6 +262,15 @@ components:
           examples:
             VenuesSummary:
               $ref: '#/components/examples/VenuesSummaryResponseExample'
+    ListTicketsResponse:
+      description: List Event Tickets Success Response
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: '#/components/schemas/TicketsSummary'
+          examples:
+            TicketsSummary:
+              $ref: '#/components/examples/TicketsSummaryResponseExample'
     ListVenuesResponse:
       description: List Venues Success Response
       content:
@@ -300,6 +384,16 @@ components:
               format: date-time
             correlationId:
               type: string
+    EventDetail: 
+      title: EventDetail
+      type: object
+      required:
+        - data
+      properties:
+        data: 
+          allOf: 
+            - $ref: '#/components/schemas/EventSummary'
+            - type: object
     EventSummary:
       title: EventSummary
       type: object
@@ -376,6 +470,81 @@ components:
                 totalElements:
                   type: integer
                   format: int32
+    TicketSummary:
+      title: TicketSummary
+      type: object
+      required:
+        - id
+        - type
+        - attributes
+      properties:
+        id: 
+          type: string
+          format: uuid
+        type:
+          $ref: "#/components/schemas/TicketsTypeEnum"
+        attributes:
+          type: object
+    TicketsSummary:
+      title: TicketsSummary
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          uniqueItems: true
+          minItems: 0
+          items: 
+            $ref: '#/components/schemas/TicketSummary'
+    TicketsTypeEnum:
+      title: TicketsTypeEnum
+      type: string
+      enum: [ tickets ]
+    VenueDetail:
+      title: VenueDetail
+      type: object
+      required:
+        - data
+      properties:
+        data: 
+          allOf: 
+            - $ref: '#/components/schemas/VenueSummary'
+            - type: object
+              properties:
+                pictures:
+                  $ref: "#/components/schemas/VenuePicturesDetail"
+    VenuePicturesDetail:
+      title: VenuePicturesDetail
+      allOf: 
+        - $ref: '#/components/schemas/VenuePicturesSummary'
+        - type: object
+          properties:
+            slideshow: 
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+                minLength: 1
+            menu: 
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+                minLength: 1
+            floorplan: 
+              type: array
+              uniqueItems: true
+              items:
+                type: string
+                minLength: 1
+    VenuePicturesSummary:
+      title: VenuePicturesSummary
+      type: object
+      properties:
+        logo:
+          type: string
+          minLength: 1
     VenueSummary:
       title: VenueSummary
       type: object
@@ -399,6 +568,8 @@ components:
               type: string
             address:
               $ref: "#/components/schemas/Address"
+            pictures:
+              $ref: "#/components/schemas/VenuePicturesSummary"
     VenuesSummary:
       title: VenuesSummary
       type: object
@@ -416,6 +587,22 @@ components:
       type: string
       enum: [ venues ]
   examples:
+    EventDetailResponseExample:
+      value: {
+        "data": {
+          "id": "aa47a092-c0d0-4aec-9cab-2943a34d940f",
+          "type": "events",
+          "attributes": {
+            "name": "Funktastika",
+            "venue": "NUBA Cafe Bucharest",
+            "start": "2023-07-27T22:30:00",
+            "end": "2023-07-28T05:30:00",
+            "tickets": {
+              "remaining": 5
+            }
+          }
+        }
+      }
     EventSummaryResponseExample: 
       value: {
         "meta": {
@@ -470,6 +657,18 @@ components:
           "correlationId": "fc52fdb98b0072bda24c5b71a5c122fe"
         }
       }
+    TicketsSummaryResponseExample:
+      value: {
+        "data": [
+          {
+            "id": "c8533d21-e233-4117-8a29-a11964ca0d7c",
+            "type": "tickets",
+            "attributes": {
+              "category": "generalaccess"
+            }
+          }
+        ]
+      }
     UnauthorizedErrorResponseExample: 
       value: {
         "errors": [
@@ -482,6 +681,39 @@ components:
           "status": "401",
           "timestamp": "2023-01-01T12:00:00.000000Z",
           "correlationId": "fc52fdb98b0072bda24c5b71a5c122fe"
+        }
+      }
+    VenueDetailResponseExample:
+      value: {
+        "data": {
+          "id": "f8ae36fd-ada6-42ee-bf7c-f7e7bf3b6c2f",
+          "type": "venues",
+          "attributes": {
+            "name": "NUBA Cafe Bucharest Herastrau",
+            "address": {
+              "line1": "Soseaua Nordului 1",
+              "line2": "Parc Herastrau",
+              "postcode": "014101",
+              "city": "Bucharest",
+              "country": "Romania"
+            },
+            "pictures": {
+              "logo": "2ca32a84-feb6-4bd5-854c-85d6c01cfd50/cbe81f53-6bfb-42d3-b5c5-87cedda01217.png",
+              "slideshow": [
+                "2ca32a84-feb6-4bd5-854c-85d6c01cfd50/1174db35-3b88-46c9-a5b5-f0dd6d022a88.png",
+                "2ca32a84-feb6-4bd5-854c-85d6c01cfd50/3e8fce0c-31dc-44ca-9b50-28daa7de7572.png",
+                "2ca32a84-feb6-4bd5-854c-85d6c01cfd50/498988ca-2ded-4a22-aab5-dd558361420c.png",
+                "2ca32a84-feb6-4bd5-854c-85d6c01cfd50/fda997ec-f3c6-4fc6-9199-42d714954419.png"
+              ],
+              "menu": [
+                "2ca32a84-feb6-4bd5-854c-85d6c01cfd50/89147fd1-d9e7-4a43-9bc5-f1bb7283d69c.png",
+                "2ca32a84-feb6-4bd5-854c-85d6c01cfd50/8b5a10da-068c-4fe4-bf59-63342c70331e.png"
+              ],
+              "floorplan": [
+                "2ca32a84-feb6-4bd5-854c-85d6c01cfd50/ad565ccb-64f4-44b7-82a3-f42b53f064a6.png"
+              ]
+            }
+          }
         }
       }
     VenuesSummaryResponseExample:
@@ -506,14 +738,16 @@ components:
                 "postcode": "014101",
                 "city": "Bucharest",
                 "country": "Romania"
-              }
+              },
+            "pictures": {
+              "logo": "2ca32a84-feb6-4bd5-854c-85d6c01cfd50/cbe81f53-6bfb-42d3-b5c5-87cedda01217.png"
             }
           }
-        ]
-      }
+        }
+      ]
+    }
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-    
