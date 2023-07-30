@@ -26,6 +26,8 @@ paths:
       responses:
         200: 
           $ref: "#/components/responses/ListEventsResponse"
+        404:
+          $ref: '#/components/responses/NotFoundErrorResponse'
         500: 
           $ref: '#/components/responses/InternalServerErrorResponse'
   /events/featured:
@@ -43,6 +45,8 @@ paths:
       responses:
         200: 
           $ref: "#/components/responses/ListFeaturedEventsResponse"
+        404:
+          $ref: '#/components/responses/NotFoundErrorResponse'
         500: 
           $ref: '#/components/responses/InternalServerErrorResponse'
   /events/{eventId}:
@@ -92,6 +96,8 @@ paths:
       responses:
         200: 
           $ref: "#/components/responses/ListVenuesResponse"
+        404:
+          $ref: '#/components/responses/NotFoundErrorResponse'
         500: 
           $ref: '#/components/responses/InternalServerErrorResponse'
   /venues/recents:
@@ -113,6 +119,8 @@ paths:
           $ref: "#/components/responses/ListRecentVenuesResponse"
         401: 
           $ref: "#/components/responses/UnauthorizedErrorResponse"
+        404:
+          $ref: '#/components/responses/NotFoundErrorResponse'
         500: 
           $ref: '#/components/responses/InternalServerErrorResponse'
   /venues/{venueId}:
@@ -151,6 +159,67 @@ paths:
           $ref: '#/components/responses/NotFoundErrorResponse'
         500: 
           $ref: '#/components/responses/InternalServerErrorResponse'
+  /favorites:
+    post:
+      tags:
+        - Favorites
+      security:
+        - bearerAuth: []
+      operationId: CreateFavorite
+      summary: Creates a User Favorite
+      description: Adds an Event/Venue to User's Favorites
+      requestBody:
+        $ref: '#/components/requestBodies/CreateFavoriteRequestBody'
+      responses:
+        201:
+          $ref: '#/components/responses/CreatedFavoriteResponse'
+        401: 
+          $ref: "#/components/responses/UnauthorizedErrorResponse"
+        # TODO BAD REQUEST
+        404:
+          $ref: '#/components/responses/NotFoundErrorResponse'
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
+    get:
+      tags:
+        - Favorites
+      security: 
+        - bearerAuth: []
+      operationId: ListFavorites
+      summary: Lists User Favorites
+      description: Lists all Event/Venues in User's Favorites
+      parameters: 
+        - $ref: '#/components/parameters/CityIdQueryParameter'
+      responses:
+        200: 
+          $ref: "#/components/responses/ListFavoritesResponse"
+        404:
+          $ref: '#/components/responses/NotFoundErrorResponse'
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
+  /favorites/{favoriteId}:
+    delete:
+      tags: 
+        - Favorites
+      security:
+        - bearerAuth: []
+      operationId: DeleteFavorite
+      summary: Deletes a User Favorite
+      description: Deletes an Event/Venue from User's Favorites
+      parameters: 
+        - $ref: '#/components/parameters/FavoriteIdPathParameter'
+      responses:
+        204: 
+          $ref: "#/components/responses/NoContentResponse"
+        401: 
+          $ref: "#/components/responses/UnauthorizedErrorResponse"
+        404:
+          $ref: '#/components/responses/NotFoundErrorResponse'
+        403: 
+          $ref: "#/components/responses/ForbiddenErrorResponse"
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
+      
 components: 
   parameters:
     CityIdQueryParameter:    
@@ -172,6 +241,14 @@ components:
       name: eventId
       in: path
       description: ID of an Event
+      required: true
+      schema:
+        type: string
+        format: uuid
+    FavoriteIdPathParameter:
+      name: favoriteId
+      in: path
+      description: ID of a Favorite
       required: true
       schema:
         type: string
@@ -201,7 +278,26 @@ components:
       schema:
         type: string
         format: uuid
+  requestBodies:
+    CreateFavoriteRequestBody:
+      description: Create Favorite Request Body
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: '#/components/schemas/CreateFavorite'
+          examples:
+            CreateFavorite:
+              $ref: '#/components/examples/CreateFavoriteRequestBodyExample'
   responses: 
+    CreatedFavoriteResponse:
+      description: Created Favorite Success Response
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: '#/components/schemas/CreatedFavorite'
+          examples:
+            CreatedFavorite:
+              $ref: '#/components/examples/CreatedFavoriteResponseExample'
     GetEventResponse:
       description: Get Event Success Response
       content:  
@@ -211,6 +307,15 @@ components:
           examples:
             EventDetail:
               $ref: '#/components/examples/EventDetailResponseExample'
+    ForbiddenErrorResponse:
+      description: Forbidden Error
+      content:
+        application/vnd.api+json:
+          schema: 
+            $ref: '#/components/schemas/Errors'
+          examples:
+            ForbiddenError: 
+              $ref: '#/components/examples/ForbiddenErrorResponseExample'
     GetVenueResponse:
       description: Get Venue Success Response
       content:  
@@ -240,6 +345,15 @@ components:
           examples:
             EventSummary:
               $ref: '#/components/examples/EventSummaryResponseExample'
+    ListFavoritesResponse:
+      description: List Favorites Success Response
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: '#/components/schemas/FavoritesSummary'
+          examples:
+            FavoriteSummary:
+              $ref: '#/components/examples/FavoriteSummaryResponseExample'
     ListFeaturedEventsResponse: 
       description: List Featured Events Success Response
       content:
@@ -282,6 +396,8 @@ components:
           examples:
             VenuesSummary:
               $ref: '#/components/examples/VenuesSummaryResponseExample'
+    NoContentResponse:
+      description: No Content Response
     NotFoundErrorResponse:
       description: Not Found Error
       content:
@@ -331,6 +447,51 @@ components:
         country:
           type: string
           minLength: 1
+    CreatedFavorite:
+      title: CreatedFavorite
+      type: object
+      required: 
+        - data
+      properties:
+        data:
+          type: object
+          required: 
+            - id
+            - type
+          properties:
+            id: 
+              type: string
+              format: uuid
+            type: 
+              $ref: '#/components/schemas/FavoritesTypeEnum'
+    CreateFavorite:
+      title: CreateFavorite
+      type: object
+      required: 
+        - data
+      properties:
+        data:
+          type: object
+          required: 
+            - type
+            - relationships
+          properties:
+            type: 
+              $ref: '#/components/schemas/FavoritesTypeEnum'
+            relationships:
+              oneOf:
+                - type: object
+                  required:
+                    - venue
+                  properties:
+                    venue:
+                      $ref: '#/components/schemas/VenueRelationship'
+                - type: object
+                  required:
+                    - event
+                  properties:
+                    event:
+                      $ref: '#/components/schemas/EventRelationship'
     Error:
       title: Error
       type: object
@@ -389,11 +550,35 @@ components:
       type: object
       required:
         - data
+        - included
       properties:
         data: 
           allOf: 
             - $ref: '#/components/schemas/EventSummary'
             - type: object
+        included:
+          type: array
+          uniqueItems: true
+          minItems: 0
+          items:
+            $ref: '#/components/schemas/EventVenueIncluded'
+    EventRelationship:
+      title: EventRelationship
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - id
+            - type
+          properties:
+            id: 
+              type: string
+              format: uuid
+            type:
+              $ref: '#/components/schemas/EventsTypeEnum'
     EventSummary:
       title: EventSummary
       type: object
@@ -411,13 +596,10 @@ components:
           type: object
           required: 
             - name
-            - venue
             - start
             - end
           properties:
             name:
-              type: string
-            venue:
               type: string
             start:
               type: string
@@ -425,11 +607,19 @@ components:
             end:
               type: string
               format: date-time 
+        relationships:
+          type: object
+          required:
+            - venue
+          properties:
+            venue:
+              $ref: '#/components/schemas/VenueRelationship' 
     EventsSummary: 
       title: EventsSummary
       type: object
       required:
         - data
+        - included
       properties:
         data:
           type: array
@@ -437,10 +627,130 @@ components:
           minItems: 0
           items: 
             $ref: '#/components/schemas/EventSummary'
+        included:
+          type: array
+          uniqueItems: true
+          minItems: 0
+          items:
+            $ref: '#/components/schemas/EventVenueIncluded'
     EventsTypeEnum:
       title: EventsTypeEnum
       type: string
       enum: [ events ]
+    EventVenueIncluded:
+      title: EventVenueIncluded
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id: 
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/VenuesTypeEnum'
+        attributes:
+          type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string 
+    FavoriteEventIncluded:
+      title: FavoriteEventIncluded
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id: 
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/EventsTypeEnum'
+        attributes:
+          type: object
+          required: 
+            - name
+            - start
+            - end
+          properties:
+            name:
+              type: string
+            start:
+              type: string
+              format: date-time
+            end:
+              type: string
+              format: date-time 
+    FavoriteSummary:
+      required:
+          - id
+          - type
+          - attributes
+      properties:
+        id: 
+          type: string
+          format: uuid
+        type:
+          $ref: "#/components/schemas/FavoritesTypeEnum"
+        relationships:
+          type: object
+          properties:
+            venue:
+              $ref: '#/components/schemas/VenueRelationship'
+            event:
+              $ref: '#/components/schemas/EventRelationship'
+    FavoritesSummary:
+      title: FavoritesSummary
+      type: object
+      required:
+        - data
+        - included
+      properties:
+        data:
+          type: array
+          uniqueItems: true
+          minItems: 0
+          items: 
+            $ref: '#/components/schemas/FavoriteSummary'
+        included:
+          type: array
+          uniqueItems: true
+          minItems: 0
+          items: 
+            anyOf: 
+              - $ref: '#/components/schemas/FavoriteVenueIncluded'
+              - $ref: '#/components/schemas/FavoriteEventIncluded'
+    FavoritesTypeEnum:
+      title: FavoritesTypeEnum
+      type: string
+      enum: [ favorites ]
+    FavoriteVenueIncluded:
+      title: FavoriteVenueIncluded
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id: 
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/VenuesTypeEnum'
+        attributes:
+          type: object
+          required:
+            - name
+            - address
+            - pictures
+          properties:
+            name:
+              type: string
+            address:
+              $ref: "#/components/schemas/Address"
+            pictures:
+              $ref: "#/components/schemas/VenuePicturesSummary"
     PaginationMetadata:
       title: PaginationMetadata
       type: object
@@ -545,6 +855,23 @@ components:
         logo:
           type: string
           minLength: 1
+    VenueRelationship:
+      title: VenueRelationship
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - id
+            - type
+          properties:
+            id: 
+              type: string
+              format: uuid
+            type:
+              $ref: '#/components/schemas/VenuesTypeEnum'
     VenueSummary:
       title: VenueSummary
       type: object
@@ -587,6 +914,27 @@ components:
       type: string
       enum: [ venues ]
   examples:
+    CreatedFavoriteResponseExample:
+      value: {
+        "data": {
+          "id": "6d834060-bc05-49b0-a057-92bb928bc982",
+          "type": "favorites"
+        }
+      }
+    CreateFavoriteRequestBodyExample:
+      value: {
+        "data": {
+          "type": "favorites",
+          "relationships": {
+            "event": {
+              "data": {
+                "id": "aa47a092-c0d0-4aec-9cab-2943a34d940f",
+                "type": "events"
+              }
+            }
+          }
+        }
+      }
     EventDetailResponseExample:
       value: {
         "data": {
@@ -594,14 +942,28 @@ components:
           "type": "events",
           "attributes": {
             "name": "Funktastika",
-            "venue": "NUBA Cafe Bucharest",
             "start": "2023-07-27T22:30:00",
             "end": "2023-07-28T05:30:00",
             "tickets": {
               "remaining": 5
             }
+          },
+          "relationships": {
+            "venue": {
+              "id": "f8ae36fd-ada6-42ee-bf7c-f7e7bf3b6c2f",
+              "type": "venues"
+            }
           }
-        }
+        },
+        "included": [
+          {
+            "id": "f8ae36fd-ada6-42ee-bf7c-f7e7bf3b6c2f",
+            "type": "venues",
+            "attributes": {
+              "name": "NUBA Cafe Bucharest Herastrau"
+            }
+          }
+        ]
       }
     EventSummaryResponseExample: 
       value: {
@@ -619,12 +981,68 @@ components:
             "type": "events",
             "attributes": {
               "name": "Funktastika",
-              "venue": "NUBA Cafe Bucharest",
               "start": "2023-07-27T22:30:00",
               "end": "2023-07-28T05:30:00"
+            },
+            "relationships": {
+              "venue": {
+                "id": "f8ae36fd-ada6-42ee-bf7c-f7e7bf3b6c2f",
+                "type": "venues"
+              }
+            }
+          }
+        ],
+        "included": [
+          {
+            "id": "f8ae36fd-ada6-42ee-bf7c-f7e7bf3b6c2f",
+            "type": "venues",
+            "attributes": {
+              "name": "NUBA Cafe Bucharest Herastrau"
             }
           }
         ]
+      }
+    FavoriteSummaryResponseExample:
+      value: {
+        "data": [
+          {
+            "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "type": "favorites",
+            "relationships": {
+              "event": {
+                "data": {
+                  "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "type": "events"
+                }
+              }
+            }
+          }
+        ],
+        "included": [
+          {
+            "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+            "type": "events",
+            "attributes": {
+              "name": "Funktastika",
+              "start": "2023-07-27T22:30:00",
+              "end": "2023-07-28T05:30:00",
+            }
+          }
+        ]
+      }
+    ForbiddenErrorResponseExample: 
+      value: {
+        "errors": [
+          {
+            "code": "FORBIDDEN_ERROR",
+            "title": "Forbidden Error"
+          }
+        ],
+        "meta": {
+          "status": "403",
+          "timestamp": "2023-01-01T12:00:00.000000Z",
+          "correlationId": "fc52fdb98b0072bda24c5b71a5c122fe"
+        }
       }
     InternalServerErrorResponseExample:
       value: {
