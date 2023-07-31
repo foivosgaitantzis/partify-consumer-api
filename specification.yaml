@@ -10,6 +10,7 @@ tags:
   - name: Users
   - name: Orders
   - name: Favorites
+  - name: Configuration
 paths:
   /events:
     get:
@@ -20,6 +21,7 @@ paths:
       description: Retrieves a List of Events by City
       parameters: 
         - $ref: '#/components/parameters/CityIdQueryParameter'
+        - $ref: '#/components/parameters/SearchQueryParameter'
         - $ref: '#/components/parameters/DateFilterQueryParameter'
         - $ref: '#/components/parameters/PageNumberQueryParameter'
         - $ref: '#/components/parameters/PageSizeQueryParameter'
@@ -90,6 +92,7 @@ paths:
       description: Retrieves a List of Venues by City
       parameters: 
         - $ref: '#/components/parameters/CityIdQueryParameter'
+        - $ref: '#/components/parameters/SearchQueryParameter'
         - $ref: '#/components/parameters/DateFilterQueryParameter'
         - $ref: '#/components/parameters/PageNumberQueryParameter'
         - $ref: '#/components/parameters/PageSizeQueryParameter'
@@ -174,8 +177,9 @@ paths:
         201:
           $ref: '#/components/responses/CreatedFavoriteResponse'
         401: 
-          $ref: "#/components/responses/UnauthorizedErrorResponse"
-        # TODO BAD REQUEST
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        400:
+          $ref: '#/components/responses/BadRequestErrorResponse'
         404:
           $ref: '#/components/responses/NotFoundErrorResponse'
         500: 
@@ -219,13 +223,118 @@ paths:
           $ref: "#/components/responses/ForbiddenErrorResponse"
         500: 
           $ref: '#/components/responses/InternalServerErrorResponse'
-      
+  /users/@me: 
+    get:
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      operationId: GetUserInfo
+      summary: Gets User Information
+      description: Retrieves all User Details
+      responses:
+        200: 
+          $ref: '#/components/responses/GetUserInfoResponse'
+        401: 
+          $ref: "#/components/responses/UnauthorizedErrorResponse"
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
+    patch:
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      operationId: UpdateUserInfo
+      summary: Updates User Information
+      description: Updates any User Details
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateUserInfoRequestBody'
+      responses:
+        204: 
+          $ref: '#/components/responses/NoContentResponse'
+        401: 
+          $ref: "#/components/responses/UnauthorizedErrorResponse"
+        400:
+          $ref: '#/components/responses/BadRequestErrorResponse'
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
+  /users/@me/profilepicture:
+    get:
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      operationId: GetProfilePicture
+      summary: Gets User Profile Picture
+      description: Retrieves a User Profile Picture
+      responses:
+        200: 
+          $ref: '#/components/responses/GetProfilePictureResponse'
+        401: 
+          $ref: "#/components/responses/UnauthorizedErrorResponse"
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
+    patch:
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      operationId: UpdateProfilePicture
+      summary: Updates a User Profile Picture
+      description: Uploads a Profile Picture & Attaches it to User
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateProfilePictureRequestBody'
+      responses:
+        204:
+          $ref: '#/components/responses/NoContentResponse'
+        401: 
+          $ref: '#/components/responses/UnauthorizedErrorResponse'
+        400:
+          $ref: '#/components/responses/BadRequestErrorResponse'
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
+  /countries:
+    get:
+      tags:
+        - Configuration
+      operationId: ListCountries
+      summary: Lists Supported Countries
+      description: Retrieves all Currently Supported Countries
+      responses:
+        200:
+          $ref: '#/components/responses/ListCountriesResponse'
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
+  /countries/{countryId}/cities:
+    get:
+      tags:
+        - Configuration
+      operationId: ListCountryCities
+      summary: Lists Supported Country Cities
+      description: Retrieves all Currently Supported Cities Under a Country
+      parameters:
+        - $ref: '#/components/parameters/CountryIdPathParameter'
+      responses:
+        200:
+          $ref: '#/components/responses/ListCountryCitiesResponse'
+        404:
+          $ref: '#/components/responses/NotFoundErrorResponse'
+        500: 
+          $ref: '#/components/responses/InternalServerErrorResponse'
 components: 
   parameters:
     CityIdQueryParameter:    
       name: cityId
       in: query
       description: ID of a City
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CountryIdPathParameter:
+      name: countryId
+      in: path
+      description: ID of a Country
       required: true
       schema:
         type: string
@@ -270,6 +379,13 @@ components:
         format: int32
         minimum: 1
         maximum: 100
+    SearchQueryParameter:
+      name: search
+      in: query
+      description: Search Term Query Parameter
+      schema:
+        type: string
+        minLength: 1
     VenueIdPathParameter:
       name: venueId
       in: path
@@ -288,7 +404,38 @@ components:
           examples:
             CreateFavorite:
               $ref: '#/components/examples/CreateFavoriteRequestBodyExample'
+    UpdateProfilePictureRequestBody:
+      description: Update Profile Picture Request Body
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              profilePicture: 
+                type: object
+                format: binary
+          encoding: 
+            profilePicture:
+              contentType: image/png, image/jpeg
+    UpdateUserInfoRequestBody:
+      description: Update User Information Request Body
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: '#/components/schemas/UpdateUserInfo'
+          examples:
+            UpdateUserInfo:
+              $ref: '#/components/examples/UpdateUserInfoRequestBodyExample'
   responses: 
+    BadRequestErrorResponse:
+      description: Bad Request Error
+      content:
+        application/vnd.api+json:
+          schema: 
+            $ref: '#/components/schemas/Errors'
+          examples:
+            BadRequestError: 
+              $ref: '#/components/examples/BadRequestErrorResponseExample'
     CreatedFavoriteResponse:
       description: Created Favorite Success Response
       content:
@@ -298,15 +445,6 @@ components:
           examples:
             CreatedFavorite:
               $ref: '#/components/examples/CreatedFavoriteResponseExample'
-    GetEventResponse:
-      description: Get Event Success Response
-      content:  
-        application/vnd.api+json:
-          schema:
-            $ref: '#/components/schemas/EventDetail'
-          examples:
-            EventDetail:
-              $ref: '#/components/examples/EventDetailResponseExample'
     ForbiddenErrorResponse:
       description: Forbidden Error
       content:
@@ -316,6 +454,35 @@ components:
           examples:
             ForbiddenError: 
               $ref: '#/components/examples/ForbiddenErrorResponseExample'
+    GetEventResponse:
+      description: Get Event Success Response
+      content:  
+        application/vnd.api+json:
+          schema:
+            $ref: '#/components/schemas/EventDetail'
+          examples:
+            EventDetail:
+              $ref: '#/components/examples/EventDetailResponseExample'
+    GetProfilePictureResponse:
+      description: Get User Profile Picture Success Response
+      content:  
+        image/png:
+          schema:
+            type: string
+            format: binary
+        image/jpeg:
+          schema:
+            type: string
+            format: binary  
+    GetUserInfoResponse:
+      description: Get User Info Success Response
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: '#/components/schemas/UserInfoDetail'
+          examples:
+            UserInfoDetail:
+              $ref: '#/components/examples/UserInfoDetailResponseExample'
     GetVenueResponse:
       description: Get Venue Success Response
       content:  
@@ -334,6 +501,24 @@ components:
           examples:
             InternalServerError: 
               $ref: '#/components/examples/InternalServerErrorResponseExample'
+    ListCountriesResponse:
+      description: List Countries Success Response
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: '#/components/schemas/CountriesSummary'
+          examples:
+            CountriesSummary:
+              $ref: '#/components/examples/CountriesSummaryResponseExample'
+    ListCountryCitiesResponse:
+      description: List Country Cities Success Response
+      content:
+        application/vnd.api+json:
+          schema:
+            $ref: '#/components/schemas/CitiesSummary'
+          examples:
+            CitiesSummary: 
+              $ref: '#/components/examples/CitiesSummaryResponseExample'
     ListEventsResponse: 
       description: List Events Success Response
       content:
@@ -397,7 +582,7 @@ components:
             VenuesSummary:
               $ref: '#/components/examples/VenuesSummaryResponseExample'
     NoContentResponse:
-      description: No Content Response
+      description: No Content Success Response
     NotFoundErrorResponse:
       description: Not Found Error
       content:
@@ -447,6 +632,78 @@ components:
         country:
           type: string
           minLength: 1
+    CitiesSummary:
+      title: CitiesSummary
+      type: object
+      required: 
+        - data
+      properties:
+        data:
+          type: array
+          uniqueItems: true
+          minItems: 0
+          items: 
+            $ref: '#/components/schemas/CitySummary'
+    CitiesTypeEnum:
+      title: CitiesTypeEnum
+      type: string
+      enum: [ cities ]
+    CitySummary:
+      title: CountrySummary
+      type: object
+      required:
+        - id
+        - type
+        - attributes
+      properties:
+        id: 
+          type: string
+          format: uuid
+        type:
+          $ref: "#/components/schemas/CitiesTypeEnum"
+        attributes:
+          type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
+    CountriesSummary:
+      title: CountriesSummary
+      type: object
+      required: 
+        - data
+      properties:
+        data:
+          type: array
+          uniqueItems: true
+          minItems: 0
+          items: 
+            $ref: '#/components/schemas/CountrySummary'
+    CountriesTypeEnum:
+      title: CountriesTypeEnum
+      type: string
+      enum: [ countries ]
+    CountrySummary:
+      title: CountrySummary
+      type: object
+      required:
+        - id
+        - type
+        - attributes
+      properties:
+        id: 
+          type: string
+          format: uuid
+        type:
+          $ref: "#/components/schemas/CountriesTypeEnum"
+        attributes:
+          type: object
+          required:
+            - name
+          properties:
+            name:
+              type: string
     CreatedFavorite:
       title: CreatedFavorite
       type: object
@@ -662,6 +919,8 @@ components:
       required:
         - id
         - type
+        - attributes
+        - relationships
       properties:
         id: 
           type: string
@@ -683,6 +942,13 @@ components:
             end:
               type: string
               format: date-time 
+        relationships:
+          type: object
+          required:
+            - venue
+          properties:
+            venue:
+              $ref: '#/components/schemas/VenueRelationship'
     FavoriteSummary:
       required:
           - id
@@ -751,6 +1017,10 @@ components:
               $ref: "#/components/schemas/Address"
             pictures:
               $ref: "#/components/schemas/VenuePicturesSummary"
+    MeTypeEnum:
+      title: MeTypeEnum
+      type: string
+      enum: [ '@me' ]
     PaginationMetadata:
       title: PaginationMetadata
       type: object
@@ -811,6 +1081,45 @@ components:
       title: TicketsTypeEnum
       type: string
       enum: [ tickets ]
+    UpdateUserInfo:
+      title: UpdateUserInfo
+      type: object
+      required: 
+        - data
+      properties:
+        data:
+          type: object
+          required:
+            - id
+            - type
+          properties:
+            id: 
+              $ref: '#/components/schemas/MeTypeEnum'
+            type: 
+              $ref: '#/components/schemas/UsersTypeEnum'
+    UserInfoDetail:
+      title: UserInfoDetail
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: object
+          required: 
+            - id
+            - type
+            - attributes
+          properties:
+            id: 
+              $ref: '#/components/schemas/MeTypeEnum'
+            type:
+              $ref: '#/components/schemas/UsersTypeEnum'
+            attributes:
+              type: object
+    UsersTypeEnum:
+      title: UsersTypeEnum
+      type: string
+      enum: [ users ]
     VenueDetail:
       title: VenueDetail
       type: object
@@ -914,6 +1223,56 @@ components:
       type: string
       enum: [ venues ]
   examples:
+    BadRequestErrorResponseExample:
+      value: {
+        "errors": [
+          {
+            "code": "VALIDATION_ERROR",
+            "title": "The request was not valid",
+            "detail": "firstName must have at least 2 characters",
+            "source": {
+              "pointer": "/data/attributes/firstName"
+            }
+          },
+          {
+            "code": "VALIDATION_ERROR",
+            "title": "Invalid parameter",
+            "detail": "id must be provided",
+            "source": {
+              "parameter": "id"
+            }
+          }
+        ],
+        "meta": {
+          "status": "400",
+          "timestamp": "2021-01-20T12:44:36.389413Z",
+          "correlationId": "fc52fdb98b0072bda24c5b71a5c122fe"
+        }
+      }
+    CitiesSummaryResponseExample:
+      value: {
+        "data": [
+          {
+            "id": "8eadf3e8-f246-4c02-8810-8734fc0dfd3c",
+            "type": "cities",
+            "attributes": {
+              "name": "Bucharest"
+            }
+          }
+        ]
+      }
+    CountriesSummaryResponseExample:
+      value: {
+        "data": [
+          {
+            "id": "61ecb513-225e-4f47-ac05-07d89e030bac",
+            "type": "countries",
+            "attributes": {
+              "name": "Romania"
+            }
+          }
+        ]
+      }
     CreatedFavoriteResponseExample:
       value: {
         "data": {
@@ -1026,6 +1385,31 @@ components:
               "name": "Funktastika",
               "start": "2023-07-27T22:30:00",
               "end": "2023-07-28T05:30:00",
+            },
+            "relationships": {
+              "venue": {
+                "data": {
+                  "id": "f8ae36fd-ada6-42ee-bf7c-f7e7bf3b6c2f",
+                  "type": "venues"
+                }
+              }
+            }
+          },
+          {
+            "id": "f8ae36fd-ada6-42ee-bf7c-f7e7bf3b6c2f",
+            "type": "venues",
+            "attributes": {
+              "name": "NUBA Cafe Bucharest Herastrau",
+              "address": {
+                "line1": "Soseaua Nordului 1",
+                "line2": "Parc Herastrau",
+                "postcode": "014101",
+                "city": "Bucharest",
+                "country": "Romania"
+              },
+              "pictures": {
+                "logo": "2ca32a84-feb6-4bd5-854c-85d6c01cfd50/cbe81f53-6bfb-42d3-b5c5-87cedda01217.png"
+              }
             }
           }
         ]
@@ -1101,6 +1485,35 @@ components:
           "correlationId": "fc52fdb98b0072bda24c5b71a5c122fe"
         }
       }
+    UpdateUserInfoRequestBodyExample:
+      value: {
+        "data": {
+          "id": "@me",
+          "type": "users",
+          "attributes": {
+            "firstName": "Alex",
+            "dateOfBirth": "1999-08-11"
+          },
+          "relationships": {
+            "city": {
+              "data": {
+                "id": "8eadf3e8-f246-4c02-8810-8734fc0dfd3c",
+                "type": "cities"
+              }
+            }
+          }
+        }
+      }
+    UserInfoDetailResponseExample:
+      value: {
+        "data": {
+          "id": "7adc208d-1627-4523-9f2f-babbe53d55c4",
+          "type": "users",
+          "attributes": {
+            
+          }
+        }
+      }
     VenueDetailResponseExample:
       value: {
         "data": {
@@ -1157,13 +1570,13 @@ components:
                 "city": "Bucharest",
                 "country": "Romania"
               },
-            "pictures": {
-              "logo": "2ca32a84-feb6-4bd5-854c-85d6c01cfd50/cbe81f53-6bfb-42d3-b5c5-87cedda01217.png"
+              "pictures": {
+                "logo": "2ca32a84-feb6-4bd5-854c-85d6c01cfd50/cbe81f53-6bfb-42d3-b5c5-87cedda01217.png"
+              }
             }
           }
-        }
-      ]
-    }
+        ]
+      }
   securitySchemes:
     bearerAuth:
       type: http
